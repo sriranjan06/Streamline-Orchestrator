@@ -1,0 +1,27 @@
+neo4j:
+  name: "standalone"
+  acceptLicenseAgreement: "yes"
+  edition: "enterprise"
+  password: "project1phase2"
+  resources:
+    cpu: "1000m"
+    memory: "2Gi"
+  config:
+    server.metrics.enabled: "true"
+    server.metrics.csv.enabled: "true"
+    server.default_advertised_address: "neo4j-service"
+    dbms.security.procedures.unrestricted: "gds.*"
+    dbms.security.procedures.allowlist: "gds.*"
+  plugins:
+    - "graph-data-science"
+
+volumes:
+  data:
+    mode: "defaultStorageClass"
+    defaultStorageClass:
+      requests:
+        storage: "10Gi"
+
+env:
+  NEO4J_PLUGINS: '["graph-data-science"]'
+  NEO4J_GRAPH_DATA_SCIENCE_VERSION: "2.12"
