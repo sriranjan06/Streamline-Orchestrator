@@ -3,6 +3,31 @@
 ## **Overview**
 This project focuses on building a scalable data processing pipeline using **Kubernetes**, **Kafka**, and **Neo4j**. The pipeline processes NYC taxicab data, demonstrating real-time data production, ingestion, and analytics using Neo4j's Graph Data Science (GDS) library.
 
+## **Steps to Solve the Project: A Higher-Level System Design Overview**
+
+**Step 1: Setting Up the Orchestrator and Data Ingestion**
+- **What It Does:** This step involves using Minikube (a local Kubernetes setup) as an orchestrator to manage and deploy services in your pipeline. You set up Kafka, a distributed streaming platform, to handle incoming data streams.
+- **Purpose:** Minikube ensures that the pipeline is orchestrated in a scalable and organized manner, while Kafka ingests the document stream, distributing it efficiently to processing components.
+
+**Step 2: Adding Neo4j for Data Storage and Analytics**
+- **What It Does:** Deploy Neo4j on Kubernetes to handle data storage and graph analytics. Configure it using neo4j-values.yaml to support streaming data from Kafka.
+- **Purpose:** Neo4j enables near real-time graph-based data storage and analytics, vital for processing relationships in the data.
+
+**Step 3: Connecting Kafka to Neo4j**
+- **What It Does:** Set up a Kafka Connect instance with a Neo4j connector to transfer data from Kafka topics into Neo4j. This includes creating and configuring the kafka-neo4j-connector.yaml file.
+- **Purpose:** This integration ensures that processed data streams from Kafka are interpreted and stored in Neo4j for analytics.
+
+**Step 4: Completing the Pipeline and Exposing Services**
+- **What It Does:** Integrate the components to form a complete data pipeline. Data flows from the producer into Kafka, is processed, and then stored in Neo4j. Expose the ports to allow external access to Neo4j and Kafka services.
+- **Purpose:** This step ensures the end-to-end functionality of the pipeline, enabling real-time data processing and analytics.
+
+**Step 5: Running Data Analytics Algorithms**
+- **What It Does:** Implement and run PageRank and Breadth-First Search (BFS) algorithms using Neo4j’s Graph Data Science library. These algorithms operate on the data stored in Neo4j.
+- **Purpose:** Demonstrates the analytical capability of the pipeline by extracting meaningful insights from the data.
+
+## **Conceptual Overview**
+This system integrates Kubernetes for scalability, Kafka for distributed streaming, and Neo4j for graph-based analytics. The pipeline processes document streams in real-time, ensuring high scalability, availability, and efficient analytics. Each component works in tandem, transforming raw data into actionable insights.
+
 ## **Prerequisites**
 - Kubernetes (with `kubectl` configured)
 - Minikube
