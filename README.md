@@ -37,16 +37,21 @@ This system integrates Kubernetes for scalability, Kafka for distributed streami
   - `pyarrow`
   - `pandas`
 
-## **File Descriptions**
+## **File Descriptions and Usage**
 
-| File                        | Description                                                                                   |
-|-----------------------------|-----------------------------------------------------------------------------------------------|
-| `zookeeper-setup.yaml`      | Kubernetes configuration to deploy Zookeeper.                                                |
-| `kafka-setup.yaml`          | Kubernetes configuration to deploy Kafka.                                                    |
-| `neo4j-service.yaml`        | Kubernetes configuration to deploy the Neo4j service.                                        |
-| `data_producer.py`          | Python script to generate and send test data to Kafka.                                       |
-| `grader.md`                 | Grading instructions and commands used in the grading environment.                           |
-| `neo4j-values.yaml`         | Helm values file to deploy Neo4j Enterprise with Graph Data Science (GDS) plugin.            |
+| File                          | Description                                                                                     | Usage                                                                                     |
+|-------------------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| `data_loader.py`              | Python script for ingesting preprocessed data into Kafka.                                      | Run this script to load and stream data from the `yellow_tripdata_2022-03.parquet` file into Kafka. |
+| `data_producer.py`            | Python script to generate and send test data to Kafka.                                         | Use this script to simulate a live data stream by producing synthetic data into Kafka.    |
+| `Dockerfile`                  | Defines the environment setup for containerizing the pipeline components.                      | Build the pipeline’s Docker image to deploy services in Kubernetes.                      |
+| `interface.py`                | Contains functions to interact with the Neo4j database and execute queries.                   | Use this file to define and execute BFS and PageRank algorithms using Neo4j's GDS library.|
+| `kafka-neo4j-connector.yaml`  | Kubernetes configuration for integrating Kafka with Neo4j via Kafka Connect API.               | Deploy this file to transfer streaming data from Kafka topics to Neo4j nodes and edges.  |
+| `kafka-setup.yaml`            | Kubernetes configuration for deploying and managing Kafka services.                            | Use this file to set up Kafka brokers in your Kubernetes cluster.                        |
+| `neo4j-service.yaml`          | Kubernetes configuration for deploying Neo4j services.                                         | Deploy Neo4j in Kubernetes and expose its ports for external access.                     |
+| `neo4j-values.yaml`           | Helm values file for configuring Neo4j deployment, including enabling the GDS plugin.          | Deploy this file with Helm to configure Neo4j, enabling analytics and graph operations.  |
+| `tester.py`                   | Script for testing the integration and functionality of the pipeline components.               | Use this script to validate the functionality of the pipeline and ensure data flow is intact. |
+| `yellow_tripdata_2022-03.parquet` | Dataset containing NYC taxicab data for use in testing and demonstrating the pipeline.        | Input data file for the pipeline; processed and streamed into Kafka by `data_loader.py`.  |
+| `zookeeper-setup.yaml`        | Kubernetes configuration for deploying Zookeeper, required for Kafka coordination.             | Deploy this file to set up Zookeeper, ensuring coordination for Kafka brokers.            |
 
 ## **Setup and Execution**
 
@@ -111,17 +116,38 @@ This system integrates Kubernetes for scalability, Kafka for distributed streami
    kubectl exec -it neo4j-standalone-0 -- ls -l /var/lib/neo4j/plugins/
    ```
 
-5. Access Neo4j Browser: <br>
-  Set up port-forwarding:
-    ```bash
-    kubectl port-forward svc/neo4j-service 7474:7474 7687:7687
-    ```
-    - Open your browser and navigate to [http://localhost:7474](http://localhost:7474).
-    - Log in with:
-      - **Username**: `neo4j`
-      - **Password**: `project1phase2`
+### **Step 5: Deploy Kafka-Neo4j Connector**
+1. Deploy the Kafka-Neo4j connector using `kafka-neo4j-connector.yaml`:
+   ```bash
+   kubectl apply -f kafka-neo4j-connector.yaml
+   ```
+2. **Details of `kafka-neo4j-connector.yaml`:**
+   - **Deployment Configuration**:
+     - **Image**: Uses `veedata/kafka-neo4j-connect:latest2` to handle Kafka to Neo4j integration.
+     - **Environment Variables**:
+       - `CONNECT_BOOTSTRAP_SERVERS`: Specifies the Kafka service endpoint (`kafka-service:29092`).
+       - `NEO4J_AUTH`: Provides Neo4j credentials (`neo4j/project1phase2`).
+       - `CONNECT_GROUP_ID`: Assigns a group ID for the Kafka Connect worker (`neo4j-sink-connector`).
+       - `CONNECT_PLUGIN_PATH`: Path to Kafka Connect plugins (`/usr/share/confluent-hub-components`).
+       - `CONNECT_KEY_CONVERTER` and `CONNECT_VALUE_CONVERTER`: Specify JSON converters for Kafka messages.
+       - `NEO4J_HOST`: Specifies the Neo4j service endpoint (`neo4j-service:7687`).
+     - **Resources**: Allocates 1–2 CPUs and 1–2GB memory for the Kafka Connect pod.
+   - **Service Configuration**:
+     - Exposes the Kafka Connect API on port `8083` with a `ClusterIP` service.
+3. Verify the deployment:
+   ```bash
+   kubectl get pods
+   ```
+4. Check logs for successful initialization:
+   ```bash
+   kubectl logs deployment/kafka-neo4j-connect
+   ```
+5. Confirm integration by querying Neo4j for nodes and relationships:
+   ```cypher
+   MATCH (n) RETURN n LIMIT 10;
+   ```
 
-### **Step 5: Test the Data Producer**
+### **Step 6: Test the Data Producer**
 1. Ensure the Kafka topic `nyc_taxicab_data` exists. Create it if not:
    ```bash
    kubectl exec -it kafka-deployment-7cf77dcbf8-22llp -- kafka-topics.sh --create --topic nyc_taxicab_data --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
@@ -136,8 +162,6 @@ This system integrates Kubernetes for scalability, Kafka for distributed streami
    ```bash
    kafka-console-consumer --topic nyc_taxicab_data --from-beginning --bootstrap-server localhost:9092
    ```
-
----
 
 ### **Step 6: Analyze Data in Neo4j**
 1. Access Cypher Shell:
@@ -180,6 +204,7 @@ To uninstall all deployments:
 ```bash
 kubectl delete -f zookeeper-setup.yaml
 kubectl delete -f kafka-setup.yaml
+kubectl delete -f kafka-neo4j-connector.yaml
 kubectl delete -f neo4j-service.yaml
 helm uninstall neo4j-standalone
 kubectl delete pvc data-neo4j-standalone
