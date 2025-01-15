@@ -163,7 +163,7 @@ This system integrates Kubernetes for scalability, Kafka for distributed streami
    kafka-console-consumer --topic nyc_taxicab_data --from-beginning --bootstrap-server localhost:9092
    ```
 
-### **Step 6: Analyze Data in Neo4j**
+### **Step 7: Analyze Data in Neo4j**
 1. Access Cypher Shell:
    ```bash
    kubectl exec -it neo4j-standalone-0 -- bash
